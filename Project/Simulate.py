@@ -28,15 +28,17 @@ def main():
     #for name, obj in inspect.getmembers(Games):
      #   if inspect.isclass(obj): #and name[-5:] == 'Agent':
       #      print (name)
-    list_of_players, arr = tour.init_players(50, [0.2, 0.2, 0.2, 0.2, 0.2], action_space)
+    list_of_players, arr = tour.init_players(20, [0.2, 0.4, 0.2, 0.0, 0.2], action_space)
     
-    for i in range(100):
+    for i in range(10000):
         print(i)
-        game.tournament(list_of_players, 200)
+        game.tournament(list_of_players, 200,0.04)
 
         for j in range(arr.size):
             if arr[j] == 5:
                 list_of_players[j].train()
+                list_of_players[j].learning_rate *= 0.95
+                
                 
     max_avg = 0
     for k in range(len(list_of_players)):    

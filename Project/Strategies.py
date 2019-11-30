@@ -175,10 +175,16 @@ class Neural200Agent(BasicNeuron):
                 
         elif t>=self.inputSize:
             X = self.model.predict(np.array([op[t-10:t],]))
+            rng = np.random.rand()
             act = np.argmax(X)
-            self.prob.append(X[0])
+            if rng < X[0][act]:
+                self.prob.append(X[0])
+            else:
+                act = np.argmin(X)
+                self.prob.append(X[0])
             self.states.append(np.array(op[t-10:t]))
         return act
+    
     
 
 
