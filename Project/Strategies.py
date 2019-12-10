@@ -216,3 +216,128 @@ class Neural10Agent(BasicNeuron):
     
 
 #--------------------------------------End Neural agents ---------------------------------------
+
+#--------------------------------- Strategies Class of 2019 ------------------------------------
+
+
+# Student1 ##############################################################
+
+class Student1_200aAgent(Basic):
+    def __init__(self, name):
+        super(atienza200aAgent, self).__init__(name)
+        self.noppdefets = 0
+        self.cont = 0
+        self.attack = False
+    
+    def chooseAction(me, opponent, t):
+
+        if (t == 0): 
+            return 1
+
+        if(self.attack==False):
+            if(opponent[t-1]==1):
+                return 1
+            else:
+                self.attack = True
+                self.noppdefets += 1
+                self.cont += 1
+                return 0
+        else:
+            if(self.cont < self.noppdefets):
+                self.cont += 1
+                return 0
+
+            elif (self.cont == self.noppdefets) {
+                self.cont += 1
+                return 1
+            else {
+                self.attack = False
+                self.cont = 0
+                return 1
+
+    def resetState():        
+        self.noppdefets = 0
+        self.cont = 0
+        self.attack = False
+                
+class Student1_200bAgent(Basic):
+    def __init__(self, name):
+        super(atienza200bAgent, self).__init__(name)
+        self.nDefets = 0
+        self.nCoop = 0 
+                
+    def chooseAction(me, opponent, t):
+        if (t == 0): 
+            return 1
+
+        if (opponent[t-1]==0): 
+            self.nDefets += 1
+        else: 
+            nCoop += 1
+
+        if (self.nDefets > self.nCoop) 
+            return 0
+
+        return 1
+                
+    def resetState():        
+        self.nDefets = 0
+        self.nCoop = 0
+                
+class Student1_200cAgent(Basic):
+    def __init__(self, name):
+        super(atienza200cAgent, self).__init__(name)
+        
+    def chooseAction(me, opponent, t):
+        if (t ==0):
+            return 1
+        if (me[t-1] == 1 and opponent[t-1] == 1):
+            return 1
+        elif (me[t-1]==1 and opponent[t-1]==0):
+            if (np.random.rand() < 13/15): 
+                return 1
+            else: 
+                return 0
+        elif (me[t-1] == 0 and opponent[t-1] == 1):
+            if (np.random.rand < 1/5): 
+                return 1
+            else: 
+                return 0
+        else:
+            if (np.random.rand() <2/5):
+                return 1
+            else: 
+                return 0
+                
+class Student1_200mAgent(Basic):
+    def __init__(self, name):
+        super(atienza200mAgent, self).__init__(name)
+        self.nDefets = 0
+        self.nCoop = 0 
+                
+    def chooseAction(me, opponent, t):
+        if (t == 0): 
+            return 1
+
+        if (opponent[t-1]==0): 
+            self.nDefets += 1
+        else: 
+            nCoop += 1
+
+        if (self.nDefets > self.nCoop+1) 
+            return 0
+
+        return 1
+                
+    def resetState():        
+        self.nDefets = 0
+        self.nCoop = 0
+                
+#End      
+                
+# Student2 ############################################################################
+                
+class Student2_200aAgent(Basic):
+    def __init__(self,name):
+        super(mitreya200aAgent, self).__init__(name)
+        

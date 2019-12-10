@@ -28,7 +28,7 @@ def main():
     #for name, obj in inspect.getmembers(Games):
      #   if inspect.isclass(obj): #and name[-5:] == 'Agent':
       #      print (name)
-    list_of_players, arr = tour.init_players(20, [0.2, 0.4, 0.2, 0.0, 0.2], action_space)
+    list_of_players, arr = tour.initPlayersRand(20, [0.2, 0.4, 0.2, 0.0, 0.2], action_space)
     
     for i in range(10000):
         print(i)
