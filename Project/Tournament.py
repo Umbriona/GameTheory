@@ -1,5 +1,5 @@
 import numpy as np
-from Strategies import TitFtatAgent, TitF2tatAgent, RandomChoiceAgent, AlwaysDefectAgent, Neural200Agent
+from Strategies import TitFTatAgent, TitF2tatAgent, RandomChoiceAgent, AlwaysDefectAgent, Neural200Agent
 
 #Function to generate a population of players {scope not updated dependent on Strategies}
 def initPlayersRand(nPlayers, p, action_space):
@@ -35,14 +35,14 @@ def getTournamentListNotSelf(players):
             arr[count,0] = i
             arr[count,1] = j
             count += 1
-    return arr
+    return arr.astype(int)
 def getTournamentListSelf(players):
     tmp = sum(range(players))+players
-    arr = np.zeros([tmp,2])
+    arr = np.zeros([tmp,2],type)
     count = 0
     for i in range(players):
         for j in range(i,players):
             arr[count,0] = i
             arr[count,1] = j
             count += 1
-    return arr
+    return arr.astype(int)
