@@ -221,7 +221,7 @@ class Neural10Agent(BasicNeuron):
 
 
 # Student1 ##############################################################
-
+#sss
 class Student1_200aAgent(Basic):
     def __init__(self, name):
         super(atienza200aAgent, self).__init__(name)
@@ -339,5 +339,24 @@ class Student1_200mAgent(Basic):
                 
 class Student2_200aAgent(Basic):
     def __init__(self,name):
-        super(mitreya200aAgent, self).__init__(name)
+        super(Student2_200aAgent, self).__init__(name)
+        self.me=np.
+        self.r=np.zeros(3)
+        self.evil=False
         
+        def chooseAction(me, opponent, t):
+            if(t == 0):
+                return me[0]
+            
+         ##Continue..
+
+class Student2_200cAgent(Basic):                
+    def __init__(self,name):
+        super(Student2_200cAgent, self).__init__(name)
+        
+        self.maxD = 0
+        
+        def chooseAction(me, opponent, t):    
+            
+            
+            
