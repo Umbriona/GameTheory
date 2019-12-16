@@ -10,17 +10,19 @@ class Basic():
     
     def __init__(self,name):
         self.name = name
-        self.lastScore = np.zeros([1,200])
-        self.lastMe = np.zeros([1,200])
-        self.lastOp = np.zeros([1,200])
+        self.numberOfRounds = 200
+        self.lastScore = np.zeros([1,self.numberOfRounds])
+        self.lastMe = np.zeros([1,self.numberOfRounds])
+        self.lastOp = np.zeros([1,self.numberOfRounds])
+        
         
     def chooseAction(self):
         return 1
     
-    def clearHistory(self):
-        self.lastScore = np.zeros([1,200])
-        self.lastMe = np.zeros([1,200])
-        self.lastOp = np.zeros([1,200])
+    def clearHistory(self, nPlayers):
+        self.lastScore = np.zeros([nPlayers,self.numberOfRounds])
+        self.lastMe = np.zeros([nPlayers,self.numberOfRounds])
+        self.lastOp = np.zeros([nPlayers,self.numberOfRounds])
 
 class BasicNeuron(Basic):
 
@@ -28,16 +30,16 @@ class BasicNeuron(Basic):
         super(BasicNeuron, self).__init__(name)
         self.actionSpace = actionSpace
         self.learning_rate = 0.001
-        self.gamma = 0.9
-        self.prob = np.zeros([1,200,2])
-        self.states = np.zeros([1,200,10])
+        self.gamma = 0.8
+        self.prob = np.zeros([1,self.numberOfRounds,2])
+        self.states = np.zeros([1,self.numberOfRounds,10])
     
     def prepThread(self,nPlayers):
-        self.prob = np.zeros([nPlayers,200,2])
-        self.states = np.zeros([nPlayers,200,10])
-        self.lastScore = np.zeros([nPlayers,200])
-        self.lastMe = np.zeros([nPlayers,200])
-        self.lastOp = np.zeros([nPlayers,200])
+        self.prob = np.zeros([nPlayers,self.numberOfRounds,2])
+        self.states = np.zeros([nPlayers,self.numberOfRounds,10])
+        self.lastScore = np.zeros([nPlayers,self.numberOfRounds])
+        self.lastMe = np.zeros([nPlayers,self.numberOfRounds])
+        self.lastOp = np.zeros([nPlayers,self.numberOfRounds])
         
     def makeModel(self):
         model = Sequential()
@@ -61,32 +63,30 @@ class BasicNeuron(Basic):
     def discountRewards(self, rewards):
         discounted_rewards = np.zeros_like(rewards)
         running_add = np.zeros([rewards.shape[0]])
-        for t in reversed(range(0, rewards.shape[1])):
+        for t in reversed(range(0, rewards.shape[0])):
             running_add[rewards[:,t] != 0] = 0
             running_add = running_add * self.gamma + rewards[:,t]
             discounted_rewards[:,t] = running_add
         return discounted_rewards
     
     def train(self):
-        y = np.zeros([2, (self.lastMe.shape[1] - 10) * self.lastMe.shape[0]])
-        count = 0
-        for i in self.lastMe:
+        y = self.lastMe.reshape((self.lastMe.size), order = 'F')
+        pro = self.prob.reshape((self.prob.size//2,2), order = 'F')
+        states = self.states.reshape((self.states.shape[1]*self.states.shape[0],self.states.shape[2]), order = 'F')
+        rewards = self.lastScore.reshape(self.lastScore.size, order = 'F')
 
-            for j in range(np.size(i) - 10):
-                y[int(i[j]),count*(i.size-10) + j] = 1
-            count += 1
-        pro = np.asarray(self.prob)  / (np.sum(np.asarray(self.prob), axis = 1)[0] + 1e-7)
-        gradients = np.array(y).astype('float32') - pro.T         
-        rewards = np.asarray(self.lastScore)[:,10:]
-        rewards = self.discountRewards(rewards)
+        #print(y, pro)
 
-        rewards = rewards / (np.std(rewards - np.mean(rewards)) + 1e-7)
+        gradients = y.astype('float32') - pro.T  
+        rewards = self.discountRewards(self.lastScore)
+        rewards = rewards.reshape(rewards.size, order = 'F')
+        rewards = (rewards- np.mean(rewards)) / np.max([np.std(rewards),1])
         gradients *= rewards.reshape([rewards.size])
-        X = np.asarray(self.states)
-        Y = np.asarray(self.prob).T + self.learning_rate * gradients
+        X = states
+        Y = pro.T + gradients
         for i in range(len(self.lastMe)):
-            self.model.train_on_batch(X[190*i:190*(i+1),:], Y.T[190*i:190*(i+1),:])
-        self.clearHistory()
+            self.model.train_on_batch(X[self.numberOfRounds*i:self.numberOfRounds*(i+1),:], Y.T[self.numberOfRounds*i:self.numberOfRounds*(i+1),:])
+        #self.clearHistory()
         
     def getWeights(self):
         modelWeights = []
@@ -167,31 +167,29 @@ class Neural200Agent(BasicNeuron):
         self.actionSpace = actionSpace
         self.nLayers = 3
         
+        
         self.nNeurons = [5, 5, self.actionSpace]
         self.model = self.makeModel()
         
         
     def chooseAction(self, me, op, t, index = 0):
         
-        #Play TitFtat first 10 rounds
-        if t<self.inputSize:
-            if t<=1:
-                act = 1
-            elif t>1:
-                act = op[t-1]
-                
-        elif t>=self.inputSize:
-            X = self.model.predict(np.array([op[t-10:t],]))
-            rng = np.random.rand()
-            act = np.argmax(X)
-            if rng < X[0][act]:
+        if t < self.inputSize:
+            state = np.random.rand(self.inputSize)
+        else:
+            state = np.zeros(self.inputSize)
 
-                self.prob[index,t,:] = X[0]
-            else:
-
-                act = np.argmin(X)
-                self.prob[index,t,:] = X[0]
-            self.states[index,t,:] =np.array(op[t-10:t])
+        state[0:np.min([t,self.inputSize])] = op[np.max([t-self.inputSize,0]):t] 
+        state = (state - np.mean(state)) / np.max([np.std(state),1]) 
+        X = self.model.predict(np.array([state,]))
+        rng = np.random.rand()
+        act = np.argmax(X)
+        if rng < X[0][act]:
+            self.prob[index,t,:] = X[0]
+        else:
+            act = np.argmin(X)
+            self.prob[index,t,:] = X[0]
+        self.states[index,t,:] =state
         return act
     
     
@@ -348,9 +346,9 @@ class Student1_200mAgent(Basic):
                 
 class Student2_200aAgent(Basic):
     def __init__(self,name):
-<<<<<<< Updated upstream
+#<<<<<<< Updated upstream
         super(Student2_200aAgent, self).__init__(name)
-        self.me=np.
+        #self.me=np.
         self.r=np.zeros(3)
         self.evil=False
         
@@ -365,11 +363,836 @@ class Student2_200cAgent(Basic):
         super(Student2_200cAgent, self).__init__(name)
         
         self.maxD = 0
-=======
-        super(mStudent2_200aAgent, self).__init__(name)
->>>>>>> Stashed changes
         
         def chooseAction(me, opponent, t):    
+            pass
             
-            
-            
+# 
+
+class Student13_200cAgent(Basic):
+    def chooseAction(me, opponent, t):
+        if (t == 1):
+            return 1
+
+        if (opponent[t-3] == 0 and opponent[t-1] == 0):
+            return 1
+
+        if (opponent[t-2] == 0):
+            return 0
+
+        return 0
+
+
+class Student13_200bAgent(Basic):
+    def __init__(self, name):
+        super(Student13_200bAgent, self).__init__(name)
+        self.good = False
+                
+    def chooseAction(self, me, opponent, t):
+        if (random.random() < 0.01):
+            good = True
+
+        if (good):
+            return 1
+
+        return 0
+       
+    def resetState():        
+        self.good = False
+
+
+class Student13_200cAgent(Basic):
+    def chooseAction(me, opponent, t):
+        if (t <= 4):
+            return 1
+
+        if ((opponent[t-3] == 0 and opponent[t-1] == 0) or (opponent[t-4] == 1 and opponent[t-2] == 1)):
+            return 0
+
+        if (opponent[t-5] == 0):
+            return 0
+
+        return 0
+
+
+class Student13_200mAgent(Basic):
+    def chooseAction(me, opponent, t):
+        if (t <= 4):
+            return 1
+
+        if (opponent[t-5] == 1 and opponent[t-1] == 1):
+            return 1
+
+        return 0
+
+
+class Student14_200aAgent(Basic):
+    def chooseAction(me, opponent, t):
+        patternForMaster = [0, 1, 1, 0, 0, 1, 1]
+        patternForSlave = [0, 0, 1, 0, 1, 1, 0]
+        patternFound = False
+        startingArray = opponent.slice(0, 7)
+
+        if ( t <= 6 ):
+            return patternForSlave[t]
+
+        else:
+            for i in range(6):
+                if ( startingArray[i] != patternForMaster[i] ):
+                    patternFound =  False
+                    break
+                else:
+                    patternFound = True
+
+            if ( patternFound ):
+                return 1
+            else:
+                return opponent[t-1]
+
+
+class Student14_200bAgent(Basic):
+    def chooseAction(me, opponent, t):
+
+        patternForMaster = [0, 1, 1, 0, 0, 1, 0]
+        patternForSlave = [0, 0, 1, 0, 1, 1, 1]
+        patternFound = False
+        startingArray = opponent.slice(0, 7)
+
+        if ( t <= 6  and t > 0 ): 
+            for i in range (t):
+                if ( startingArray[i] != patternForSlave[i] ):
+                    return opponent[t-1]
+
+        if ( t <= 6 ):
+            return patternForMaster[t]
+
+        if ( t > 6 ):
+            for i in range(6):
+                if ( startingArray[i] != patternForSlave[i] ):
+                    patternFound =  False
+                    break
+                else:
+                    patternFound = True
+
+            if ( patternFound ):
+                return 0
+            else:
+                if (t >= me.length -2):
+                    return 0
+                else:
+                    return opponent[t-1]
+
+
+# Student15_200cAgent = Student15_200aAgent
+# Student15_200mAgent: Don't know how to implement in python
+
+
+class Student15_200aAgent(Basic):
+    def __init__(self, name):
+        super(Student15_200cAgent, self).__init__(name)
+        self.paired = False
+        self.hostile = False
+                
+    def chooseAction(self, me, opponent, t):
+        CODE = [1,0,1,1,0,1,1,1,1,1,0,1]
+
+        if (t == 0):
+            return 1
+
+        if (self.paired):
+            return 1
+
+        if (self.hostile):
+             return 0
+        else:
+            if (t == 1 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 1):
+                self.hostile = True
+    
+            if (t == 2 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 2):
+                self.hostile = True
+
+            if (t == 3 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 3):
+                self.hostile = True
+
+            if (t == 4 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 4):
+                self.hostile = True
+
+            if (t == 5 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 5):
+                self.hostile = True
+
+            if (t == 6 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 6):
+                self.hostile = True
+
+            if (t == 7 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 7):
+                self.hostile = True
+
+            if (t == 8 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 8):
+                self.hostile = True
+
+            if (t == 9 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 9):
+                self.hostile = True
+
+            if (t == 10 and opponent[t-1] == CODE[t-1]):
+                return CODE[t]
+            elif (t == 10):
+                self.hostile = True
+
+            if (t == 11 and opponent[t-1] == CODE[t-1]):
+                self.paired=True
+                return CODE[t]
+            elif (t == 11):
+                self.hostile = True
+
+        return opponent[t-1]
+       
+    def resetState():        
+        self.paired = False
+        self.hostile = False
+
+
+# Student15_200bAgent: Same as Student15_200aAgent
+# Student15_200cAgent: Same as Student15_200aAgent
+# Student15_200mAgent: tit for two tats
+
+
+# Student16_200aAgent: Don't know how to implement in python
+
+class Student16_200bAgent(Basic):
+    def __init__(self, name):
+        super(Student16_200bAgent, self).__init__(name)
+        self.numDefects = 0
+        self.maxDefects = 100
+                
+    def chooseAction(self, me, opponent, t):
+        if(t==199):
+            return 0
+
+        if (t < self.maxDefects):
+            return 1
+
+        for i in range(t):
+            if (opponent[i] == 0) :
+                self.numDefects = self.numDefects + 1
+
+            if (self.numDefects > self.maxDefects):
+                return 0
+            else:
+                return 1
+       
+    def resetState():        
+        self.numDefects = 0
+        self.maxDefects = 100
+
+
+class Student16_200cAgent(Basic):            
+    def chooseAction(self, me, opponent, t):
+
+        if (t <= 0):
+            return 0
+
+        if (t==1):
+            if (opponent[0] == 0):
+                return 0
+            else:
+                return 1
+
+        elif (t==2):
+            if (opponent[0] == 0 or opponent[1] == 0):
+                return 0;
+            else:
+                return 1
+
+        else:
+            if (opponent[t-1] == 0 or opponent[t-2]==0 or opponent[t-3]==0):
+                return 0
+            else:
+                return 1
+
+        return 0
+
+
+# Student16_200mAgent: Same as Student16_200aAgent
+
+
+class Student17_200aAgent(Basic):         
+    def chooseAction(me, opponent, t):
+
+        maxDefects = 2
+        numDefects = 0
+
+        if (t < maxDefects):
+            return 1
+
+        for i in range(t):
+            if (opponent[i] == 0):
+                numDefects = numDefects + 1
+            if (numDefects > maxDefects):
+                return round(random.random())
+            else:
+                return 0
+
+
+class Student17_200bAgent(Basic):               
+    def chooseAction(me, opponent, t):
+
+        maxDefects = 5
+        numDefects = 0
+
+        if (t < maxDefects):
+            return 1
+
+        for i in range(t):
+            if (opponent[i] == 0):
+                numDefects = numDefects + 1
+            if (numDefects > maxDefects):
+                return round(random.random())
+            else:
+                return 0
+
+# Student17_200cAgent = Student17_200bAgent
+
+
+class Student17_200mAgent(Basic):
+    def __init__(self, name):
+        super(Student17_200mAgent, self).__init__(name)
+        self.angel = False
+                
+    def chooseAction(self, me, opponent, t):
+
+        if (random.random() < 0.1):
+            self.angel = False
+
+        if (self.angel):
+            return 1
+
+        return 0
+       
+    def resetState():        
+        self.angel = False
+
+
+# Student18_200x aren't interesting in this case
+
+
+class Student19_200aAgent(Basic):                
+    def chooseAction(me, opponent, t):
+
+        C = 0
+        D = 0
+
+        if (t == 0):
+            return 0
+
+        if (opponent[t-1] == 1):
+            C = C + 1
+        else :
+            D = D + 1
+
+        if (C > D):
+            return 1
+
+        if (C < D):
+            return 0
+        else:
+            return 0 
+
+
+class Student19_200bAgent(Basic):               
+    def chooseAction(me, opponent, t):
+
+        C = 0
+        D = 0
+
+        if (t == 0):
+            return 1
+
+        if (opponent[t-1] == 1):
+            C = C + 1
+        else:
+            D = D + 1
+
+        if (C > D):
+            return 0
+
+        if (C < D):
+            return 1
+        else:
+            return 0
+
+
+class Student19_200cAgent(Basic):                
+    def chooseAction(me, opponent, t):
+
+        C = 0
+        D = 0
+
+        if (t < 5):
+            return 0
+
+        if (opponent[t-1] == 1):
+            C = C + 1
+        else:
+            D = D + 1
+
+        if (C/(C+D) > 0.75):
+            return 1
+        else:
+            return 0
+
+class Student19_200mAgent(Basic):                
+    def chooseAction(me, opponent, t):
+
+        C = 0
+        D = 0
+        if (t < 5):
+            return 0
+        else:
+            sum_ = 0
+            avg = 0
+            for i in range(t-5,t-2):
+                sum_ += opponent[i]
+                avg = sum_/5
+
+            if (avg >= 0.6):
+                return 1
+            else:
+                return 0
+
+
+# Student20_200x aren't interesting in this case
+
+
+class Student21_200aAgent(Basic):
+    def __init__(self, name):
+        super(Student21_200aAgent, self).__init__(name)
+        self.against_self_a = False
+        self.against_self_b = False
+        self.against_Tf2T = False
+                
+    def chooseAction(self, me, opponent, t):
+        if (t == 0):
+            return 0
+
+        if (opponent[0] == 0):
+            if (t == 1):
+                return 0
+
+            if (t == 2 and opponent[t-1] == 0):
+                self.against_self_a = True
+                return 1
+
+            if (against_self_a == True):
+                if (opponent[t-1] == 0):
+                    self.against_self_a = False
+                    return 0
+                return 1
+
+            if (t == 2 and opponent[t-1] == 1):
+                self.against_self_b = True
+                return 0
+
+            if (self.against_self_b == True):
+                if (opponent[t-1] == 0):
+                    self.gainst_self_b = False
+                    return 0
+                return 0
+
+        if (t == 1):
+            return 1
+
+        if (t == 2):
+            if (opponent[t-1] == 1):
+                self.against_Tf2T = True
+                return 0
+            return 1
+
+        if (self.against_Tf2T == True):
+            if (opponent[t-1] == 0 and (me[t-1] == 1 or me[t-2] == 1)):
+                self.against_Tf2T = False
+                return 0
+            if me[t-1] == 1:
+                return 0
+            else:
+                return 1
+
+        if (opponent[t-1] == 0):
+            return 0
+
+        return 1
+       
+    def resetState():        
+        self.against_self_a = 0
+        self.against_self_b = 0
+        self.against_Tf2T = 0
+
+
+# Student21_200bAgent = Student21_200cAgent
+class Student21_200cAgent(Basic):
+    def __init__(self, name):
+        super(Student21_200cAgent, self).__init__(name)
+        self.against_self_a = 0
+                
+    def chooseAction(self, me, opponent, t):
+
+        if (t == 0):
+            return 0
+
+        if (opponent[0] == 0):
+            if (t == 1):
+                return 1
+            if (t == 2 and opponent[t-1] == 0):
+                self.against_self_a = True
+                return 1
+            if (self.against_self_a == True):
+                if (opponent[t-1] == 1):
+                    self.against_self_a = False
+                    return 0
+                return 1
+
+        return 0
+       
+    def resetState():        
+        self.against_self_a = 0
+
+
+# Student22_200cAgent: Tit for tat
+# Student22_200cAgent: For 200 rounds
+# Student22_200cAgent: Always defect
+
+class Student22_200mAgent(Basic):
+    def __init__(self, name):
+        super(Student22_200mAgent, self).__init__(name)
+        self.timesToForgive = 4
+                
+    def chooseAction(self, me, opponent, t):
+        if (t == 0):
+            return 1
+
+        if (me[t-1] == 0 and me[t-2] == 0 and opponent[t-1] == 0 and opponent[t-2] == 0 and self.timesToForgive > 0):
+            self.timesToForgive -= 1
+            return 1
+        else:
+            return opponent[t-1];
+       
+    def resetState():        
+        self.timesToForgive = 4
+
+
+class Student23_200aAgent(Basic):
+    def __init__(self, name):
+        super(Student23_200aAgent, self).__init__(name)
+        self.masterFound = True
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+                
+    def chooseAction(self, me, opponent, t):
+        if (t < self.arrayLength):
+            return self.lackeyPassword[t]
+
+        if (t == self.arrayLength):
+            for i in range(self.arrayLength):
+                if (opponent[i] != self.masterPassword[i]):
+                    self.masterFound = False
+                if (opponent[i] != self.lackeyPassword[i]):
+                    self.lackeyFound = False;
+
+        if( self.masterFound or self.lackeyFound):
+            return 1
+        else:
+            return 0
+              
+    def resetState():        
+        self.masterFound = True
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+
+
+class Student23_200bAgent(Basic):
+    def __init__(self, name):
+        super(Student23_200bAgent, self).__init__(name)
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+                
+    def chooseAction(self, me, opponent, t):
+        if (t < arrayLength):
+            return self.masterPassword[t]
+
+        if (t == arrayLength ):
+            for i in range(self.arrayLength):
+                if (opponent[i] != self.lackeyPassword[i]):
+                    lackeyFound = False
+
+        if(self.lackeyFound):
+            return 0
+
+        else:
+            return opponent[t-1]
+                
+    def resetState():        
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+
+
+class Student23_200cAgent(Basic):
+    def __init__(self, name):
+        super(Student23_200cAgent, self).__init__(name)
+        self.masterFound = True
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+                
+    def chooseAction(self, me, opponent, t):
+        if (t < self.arrayLength):
+            return self.lackeyPassword[t]
+
+        if (t == self.arrayLength):
+            for i in range(self.arrayLength):
+                if (opponent[i] != self.masterPassword[i]):
+                    self.masterFound = False
+                elif (opponent[i] != self.lackeyPassword[i]):
+                    self.lackeyFound = False
+
+        if( (t > self.arrayLength + 5) and (opponent[t-1] == 0) ):
+            self.lackeyFound = False
+
+        if( self.masterFound or self.lackeyFound):
+            return 1
+        else:
+            return 0
+                
+    def resetState():        
+        self.masterFound = True
+        self.lackeyFound = True
+        self.arrayLength = 8
+        self.masterPassword = [0, 0, 1, 1, 0, 1, 1, 1]
+        self.lackeyPassword = [0, 1, 0, 1, 1, 0, 0, 1]
+
+
+class Student23_200mAgent(Basic):
+    def __init__(self, name):
+        super(Student23_200mAgent, self).__init__(name)
+        self.trust = True
+        self.brokenTrust = False
+        self.numBreach = 0
+        self.maxBreach = 25
+                
+    def chooseAction(self, me, opponent, t):
+        if (t < 1):
+            return 1
+
+        if(self.numBreach > self.maxBreach):
+            brokenTrust = True
+
+        if (self.brokenTrust):
+            return 0
+
+        if ( self.trust ):
+            if( opponent[t-1] != 1 ):
+                self.trust = False
+                self.numBreach+=1
+        else:
+            if ( me[t-1] == 1 and opponent[t-1] == 1 ):
+                self.trust = True
+
+        if ( t >= 3 and opponent[t-1] == 0 and opponent[t-2] == 0 and opponent[t-3] == 0
+            and me[t-1] == 1 and me[t-2] == 1 and me[t-3] == 1):
+            return 0;
+
+        return 1
+                
+    def resetState():        
+        self.trust = True
+        self.brokenTrust = false
+        self.numBreach = 0
+        self.maxBreach = 25
+
+
+# Student24_200aAgent is the same as Student26_200cAgent
+
+class Student24_200bAgent(Basic):
+    def __init__(self, name):
+        super(Student24_200bAgent, self).__init__(name)
+        self.coops = 0
+        self.betrayals = 0
+        self.r = 0
+        self.threshold = 0
+                
+    def chooseAction(self, me, opponent, t):
+        self.r = random.random()
+        self.threshold = self.coops/(self.coops+self.betrayals)
+
+        if (self.r < self.threshold):
+            return 1
+        else:
+            return 0
+                
+    def resetState():        
+        self.coops = 0
+        self.betrayals = 0
+        self.r = 0
+        self.threshold = 0
+
+
+class Student24_200cAgent(Basic):
+    def __init__(self, name):
+        super(Student24_200cAgent, self).__init__(name)
+        self.betrayals = 0
+        self.rounds = 0
+        self.threshold = 0.25
+        self.ratio = 0
+                
+    def chooseAction(self, me, opponent, t):
+        self.rounds = self.rounds + 1
+
+        if (opponent[t-1] == 0):
+            self.betrayals = self.betrayals + 1
+
+        self.ratio = self.betrayals / self.rounds;
+
+        if (self.ratio < self.threshold):
+            return 1
+        else :
+            return 0
+                
+    def resetState():        
+        self.betrayals = 0
+        self.rounds = 0
+        self.threshold = 0.25
+        self.ratio = 0
+
+
+class Student24_200mAgent(Basic):
+    def __init__(self, name):
+        super(Student24_200mAgent, self).__init__(name)
+        self.isResponding = False
+        self.retaliations = 0
+        self.betrayals = 0
+        self.appeasements = 0
+                
+    def chooseAction(self, me, opponent, t):
+        if (t <= 0):
+            return 1
+
+        if (self.isResponding == False):
+            if (opponent[t-1] == 0):
+                self.betrayals = self.betrayals + 1
+                self.retaliations = self.betrayals
+                self.appeasements = 2
+                self.isResponding = True
+
+        if (self.isResponding == True):
+            if (self.retaliations > 0):
+                self.retaliations = self.retaliations - 1
+                return 0
+        elif (self.appeasements > 0):
+            self.appeasements = self.appeasements - 1
+            return 1
+        else:
+            self.isResponding = False
+
+        return 1; 
+                
+    def resetState():        
+        self.isResponding = False
+        self.retaliations = 0
+        self.betrayals = 0
+        self.appeasements = 0
+
+
+# Student26_200aAgent: Tit for tat
+class Student26_200bAgent(Basic):                
+    def chooseAction(me, opponent, t):
+        if (t == 0):
+            return 1
+
+        numDefects = 0
+        for i in range(t):
+            if (opponent[i] == 0):
+                numDefects = numDefects + 1
+
+        numCoop = 0
+        if(opponent[t-1]==1):
+            return 1
+
+        numDefectsMe = 0
+        for i in range(t,0,-1):
+            if (me[i-1] == 0):
+                numDefectsMe = numDefectsMe + 1
+            if (me[i-1]==1):
+                break
+
+        if (numDefects > numDefectsMe):
+            return 0
+        else:
+            return 1; # Otherwise cooperate
+
+        return 1;
+
+
+class Student26_200cAgent(Basic):               
+    def chooseAction(me, opponent, t):
+
+        if (t == 0):
+            return 1
+
+        numDefects = 0
+        for i in range(t):
+            if (opponent[i] == 0): 
+                numDefects = numDefects + 1
+
+        numCoop = 0
+        if(opponent[t-1]==1 and opponent[t-2]==1):
+            return 1
+
+        numDefectsMe = 0
+        for i in range(t,0,-1):
+            if (me[i-1] == 0):
+                numDefectsMe = numDefectsMe + 1
+            if (me[i-1]==1):
+                break
+
+        if (numDefects > numDefectsMe):
+            return 0
+        else:
+            return 1
+
+        return 1
+
+
+class Student26_200mAgent(Basic):                
+    def chooseAction(me, opponent, t):
+
+        if (t == 0):
+            return 1
+
+        if (opponent[t-2]!=me[t-1]):
+            return 1
+
+        return opponent[t-1]

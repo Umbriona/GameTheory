@@ -27,13 +27,13 @@ class PrisonersDilemma(Basic):
             for j in range(i + 1,len(list_p)):
                 player_1 = list_p[i]
                 player_2 = list_p[j]
-                move_player_1 = np.zeros(self.nIter)
-                move_player_2 = np.zeros(self.nIter)
-                Score_player_1 = np.zeros(self.nIter)
-                Score_player_2 = np.zeros(self.nIter)
-                for t in range(self.nIter):
+                move_player_1 = np.zeros(nIter)
+                move_player_2 = np.zeros(nIter)
+                Score_player_1 = np.zeros(nIter)
+                Score_player_2 = np.zeros(nIter)
+                for t in range(nIter):
                     if player_1.name[:7] =='Neural': 
-                        tmp = player_1.chooseAction(move_player_1,move_player_2,t, index = j)
+                        tmp = player_1.chooseAction(move_player_1,move_player_2,t, index = j-1)
                     else:
                         tmp = player_1.chooseAction(move_player_1,move_player_2,t)
 
@@ -63,11 +63,11 @@ class PrisonersDilemma(Basic):
                     if move_player_1[t] == 0 and move_player_2[t] == 0:
                         Score_player_1[t] = self.payofMatrix[1,1]
                         Score_player_2[t] = self.payofMatrix[1,1]
-                        
-                player_1.lastScore[j] = Score_player_1
+
+                player_1.lastScore[j-1] = Score_player_1
                 player_2.lastScore[i] = Score_player_2
-                player_1.lastMe[j] = move_player_1
-                player_1.lastOp[j] = move_player_2
+                player_1.lastMe[j-1] = move_player_1
+                player_1.lastOp[j-1] = move_player_2
                 player_2.lastMe[i] = move_player_2
                 player_2.lastOp[i] = move_player_1
         return 0
