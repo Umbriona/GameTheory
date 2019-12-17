@@ -388,9 +388,6 @@ class Student2_200cAgent(Basic):
             return 0
 
         return 1
-
-        
-## NOT FINISHED
                 
 # Student3 ############################################################################            
 
