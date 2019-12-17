@@ -381,6 +381,14 @@ class Student2_200cAgent(Basic):
         maxDefects = 5
         if (t < maxDefects):
             return 1
+
+        numDefects = t - sum(opponent.slice(0,t))
+
+        if numDefects >= maxDefects:
+            return 0
+
+        return 1
+
         
 ## NOT FINISHED
                 
