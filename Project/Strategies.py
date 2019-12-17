@@ -364,26 +364,373 @@ class Student1_200mAgent(Basic):
                 
 class Student2_200aAgent(Basic):
     def __init__(self,name):
-#<<<<<<< Updated upstream
         super(Student2_200aAgent, self).__init__(name)
-        #self.me=np.
-        self.r=np.zeros(3)
-        self.evil=False
-        
-    def chooseAction(self, me, opponent, t):
+
+    def chooseAction(me, opponent, t):
+        me=3*[0]
+        me[1]
+
+        evil=False
         if(t == 0):
             return me[0]
-            
-         ##Continue..
+        if (t ==1):
+            if(opponent[t-1] == 0):
+                me[1]=round(np.random.rand)
+                return me[1]
+
+        if (t == 2):
+            if(opponent[t-1] == me[0]):
+                me[2]=1
+                return 1
+
+        if (evil == True):
+            me[0]=0
+            return 0
+
+        if (opponent[t-1] == 0 and opponent[t-2] == 0 and opponent[t-3] == 0):
+            evil=True
+            return 0
+        elif (opponent[t-1] == me[1]):
+            return 1
+        else:
+            return 0
+
 
 class Student2_200cAgent(Basic):                
     def __init__(self,name):
         super(Student2_200cAgent, self).__init__(name)
-        
-        self.maxD = 0
-        
-    def chooseAction(self, me, opponent, t):    
+
+    def chooseAction(me, opponent, t):    
+
+        maxDefects = 5
+        if (t < maxDefects):
+            return 1
+
+## NOT FINISHED
+
+# Student3 ############################################################################            
+
+class Student3_200aAgent(Basic):
+    def __init__(self,name):
+        super(Student3_200aAgent, self).__init__(name)
+
+    def chooseAction(me, opponent, t):  
+
+        if (t < 6):
+            return 1
+
+        if (opponent[t-6] == 0 and np.random.rand < 0.2):
+            return 0
+
+        if (opponent[t-5] == 0 and np.random.rand < 0.2):
+            return 0
+
+        if (opponent[t-4] == 0 and np.random.rand < 0.2):
+            return 0    
+
+        if (opponent[t-3] == 0 and np.random.rand < 0.2):
+            return 0
+
+        if (opponent[t-2] == 0 and np.random.rand < 0.2):
+            return 0 
+
+        if (opponent[t-1] == 0 and np.random.rand < 0.2):
+            return 0
+
+
+class Student3_200bAgent(Basic):
+    def __init__(self,name):
+        super(Student3_200bAgent, self).__init__(name)    
+
+    def chooseAction(me, opponent, t): 
+        if (t < 3):
+            return 1
+
+        if (t > 180):
+            if (np.random.rand < 0.05):
+                return 0
+
+        if (opponent[t-3] + opponent[t-2] + opponent[t-1] < 1.5):
+            return 0
+
         return 1
+
+
+# Student4 ############################################################################        
+
+class Student4_200aAgent(Basic):
+    def __init__(self,name):
+        super(Student4_200aAgent, self).__init__(name)    
+
+
+    def chooseAction(me, opponent, t): 
+        T=0
+        p=0
+        i=0
+
+        if (t > 9):
+            for i in range(t):
+                T=T+opponent[i]
+
+        p=T/(t+1)
+
+        if (np.random.rand > p):
+            return 0
+
+        return 1
+
+# Student5 ############################################################################   
+
+class Student5_200aAgent(Basic):
+    def __init__(self,name):
+        super(Student5_200aAgent, self).__init__(name)  
+
+    def chooseAction(me, opponent, t):
+        if (t <= 1):
+            return 1
+
+        if ( (me[t-2] == 0 and me[t-1] == 0) or (me[t-2] == 1 and me[t-1] == 1) ):
+            return 0
+        else: 
+            return 1
+
+
+class Student5_200bAgent(Basic):
+    def __init__(self,name):
+        super(Student5_200bAgent, self).__init__(name)  
+
+    def chooseAction(me, opponent, t):     
+        evil=False
+        if (np.random.rand < 0.05):
+            evil=True 
+
+        if (np.random.rand <- 0.02):
+            evil=False
+
+        if (evil==True):
+            return 0
+
+        return 1
+
+class Student5_200cAgent(Basic):
+    def __init__(self,name):
+        super(Student5_200cAgent, self).__init__(name)  
+
+    def chooseAction(me, opponent, t):
+        maxDefects = 0
+        numDefects = 0
+        i = 0
+        if (t < maxDefects):
+            return 1
+
+        for i in range(t):
+            if (opponent[i] == 0):
+                numDefects = numDefects + 1
+
+        if (numDefects > maxDefects):
+            return 0
+        else:
+            return 1
+
+class Student5_200mAgent(Basic):
+    def __init__(self,name):
+        super(Student5_200cAgent, self).__init__(name)  
+
+
+    def chooseAction(me, opponent, t): 
+        numDefects = 0
+        numCooperate = 0
+        i = 0
+        for i in range(t+1):
+            if (me[i] == 0):
+                numDefects = numDefects + 1
+            else:
+                numCooperate = numCooperate + 1
+
+        if (numCooperate == numDefects):
+            return round(np.random.rand)
+
+        elif (numDefects > numCooperate):
+            return 1
+
+        else:
+            return 0
+
+#Student 6 not implemented
+
+# Student7 ############################################################################   
+
+class Student7_200aAgent(Basic):
+    def __init__(self,name):
+        super(Student7_200aAgent, self).__init__(name) 
+
+    def chooseAction(me, opponent, t):
+        trust=True
+        if (t >= 3 and trust):
+            actionSum=functools.reduce(lambda a,b : a+b,opponent)
+            trust = (actionSum/(t+1)) > 0.6
+
+        if (trust):
+            if(t==0):
+                return 1
+            return opponent[t-1]
+        return 0        
+
+class Student7_200bAgent(Basic):
+    def __init__(self,name):
+        super(Student7_200aAgent, self).__init__(name) 
+
+    def chooseAction(me, opponent, t):
+        tft = False
+        tf2t = False
+        itft = False
+        alwaysDefect = False
+        alwaysCooperate = False
+
+        startActions = [1, 0, 0, 0, 1, 1]
+
+        if (t < len(startActions)):
+            return startActions[t]
+        elif (t == len(startActions)):
+            oppResponse=slice(opponent[0],opponent[t],1)
+
+        if (oppResponse[1] == 1 and oppResponse[2] == 0 and oppResponse[3] == 0 and oppResponse[5] == 1): 
+            tft = True
+        elif (oppResponse[2] == 1 and oppResponse[3] == 0 and oppResponse[4] == 0 and oppResponse[5] == 1):
+            tf2t = True
+        elif (oppResponse[1] == 0 and oppResponse[2] == 1 and oppResponse[3] == 1 and oppResponse[5] == 0):
+            itft = True;
+        elif (oppResponse[1] == 0 and oppResponse[2] == 0 and oppResponse[3] == 0 and oppResponse[5] == 0):
+            alwaysDefect = True;
+        elif (oppResponse[1] == 1 and oppResponse[2] == 1 and oppResponse[3] == 1 and oppResponse[4] == 1 and oppResponse[5] == 1):
+            alwaysCooperate = True;
+
+        if (t >= len(startActions)):
+
+            if (tft):
+                return opponent[t-1]
+            elif (tf2t):
+                return abs(me[t-1] - 1)
+            elif (itft or alwaysDefect or alwaysCooperate):
+                return 0;
+            else:
+                return opponent[t-1]
+
+class Student7_200mAgent(Basic):
+    def __init__(self,name):
+        super(Student7_200mAgent, self).__init__(name)           
+
+    def chooseAction(me, opponent, t):   
+        trust = True
+        reset = False
+
+        if (t >=3 and trust):
+            oppActionSum=functools.reduce(lambda a,b : a+b,opponent)
+            trust=(oppActionSum/(t+1)) > 0.6
+        elif (t >= 4 and trust==False):
+            oppLastMoves = slice(opponent[t-4],opponent[t])
+            trust = (oppLastMoves[0] == 1 and oppLastMoves[1] == 1 and oppLastMoves[2] == 1 and oppLastMoves[3] == 1)
+
+        if(trust):
+            if(t == 0):
+                return 1
+            if(reset):
+                reset=False
+                return 0
+            else:
+                reset = me[t-1] != opponent[t-1] and me[t-2] != opponent[t-2]
+            if(reset):
+                return 0
+            return 1
+        return 0
+
+# Student8, probability based, been done before ############################################################################   
+
+# Student9 Hard coded for 200 rounds ############################################################################ 
+
+# Student10 ############################################################################ 
+class Student10_200mAgent(Basic):
+    def __init__(self,name):
+        super(Student10_200mAgent, self).__init__(name)  
+
+    def chooseAction(me, opponent, t):
+        if (t == 0):
+            return 1
+
+        if (t <= 9):
+            return opponent[t-1]
+
+        coop=0
+        for i in range(t):
+            coop +=opponent[t-i]
+
+        def1=10-coop
+        coopPercent=coop/10
+        if (np.random.rand <= coopPercent):
+            return 1
+
+        meCoop=0
+        for j in range(10):
+            meCoop=meCoop+me[t-1]
+
+        meDef=10-meCoop
+        totDef=meDef+def1
+        defPercent=def1/totDef
+        if (np.random.rand <= defPercent):
+            return 0
+        else:
+            return 1
+
+# Student11 ############################################################################         
+class Student11_200mAgent(Basic):
+    def __init__(self,name):
+        super(Student11_200mAgent, self).__init__(name)              
+
+    def chooseAction(me, opponent, t):
+        if (opponent[t-3] == 1):
+            if (opponent[t-2] == 1):
+                if (opponent[t-1] == 1):
+                    if (opponent[t] == 1):
+                        return 1
+                    return 1
+
+                if (opponent[t] == 1):
+                    return 1
+                return 0
+
+            if (opponent[t-1] == 1):
+                if (opponent[t] == 1):
+                    return 1
+                return 0
+
+            if (opponent[t] == 1):
+                return 0
+
+            return 1
+
+
+        if (opponent[t-2] == 1):
+            if (opponent[t-1] == 1):
+                if (opponent[t] == 1):
+                    return 1
+                return 1
+
+            if (opponent[t] == 1):
+                return 0;
+
+            return 0;
+
+        if (opponent[t-1] == 1):
+            if (opponent[t] == 1):
+                return 1;
+            return 1;
+
+        if (opponent[t] == 1):
+            return 1
+        return 1
+
+
+
             
 # 
 

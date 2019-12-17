@@ -32,7 +32,7 @@ def play(list_of_players, rng, v=False):
     
     L = len(list_of_players)
     avgScoreM = np.zeros([L,L])     
-    for i in range(1):
+    for i in range(30):
         if v:
             print(i)
         for k in list_of_players:
@@ -52,7 +52,7 @@ def play(list_of_players, rng, v=False):
     df = {}
     #arr = np.array(list_avgScore)
     for i in range(avgScoreM.shape[0]):
-        df[list_of_players[i].name] = avgScoreM[i,:] 
+        df[list_of_players[i].name] = avgScoreM[i,:] /30
     df = pd.DataFrame(df)
     df.to_csv(os.path.join(pathData,  'Matrix_avgPlayers.csv'))
 
