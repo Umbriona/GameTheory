@@ -22,18 +22,31 @@ class PrisonersDilemma(Basic):
         self.actionSpace = 2
         self.payofMatrix = np.array([[3, 0],[5, 1]])
         
-    def tournament(self, list_p, nIter, rng):
+    def tournament(self, list_p, nIter, rng, againstSelf = False):
+        
         for i in range(len(list_p)):
-            for j in range(i + 1,len(list_p)):
+            if againstSelf:
+                k = range(i,len(list_p))
+            else:
+                k = range(i+1,len(list_p))
+                
+            for j in k:
                 player_1 = list_p[i]
                 player_2 = list_p[j]
                 move_player_1 = np.zeros(nIter)
                 move_player_2 = np.zeros(nIter)
                 Score_player_1 = np.zeros(nIter)
                 Score_player_2 = np.zeros(nIter)
+                
+                if againstSelf:
+                    index_p1 = j 
+                else:
+                    index_p1 = j - 1
+                index_p2 = i
                 for t in range(nIter):
-                    if player_1.name[:7] =='Neural': 
-                        tmp = player_1.chooseAction(move_player_1,move_player_2,t, index = j-1)
+                        
+                    if 'Neural' in player_1.name: 
+                        tmp = player_1.chooseAction(move_player_1,move_player_2,t, index = index_p1)
                     else:
                         tmp = player_1.chooseAction(move_player_1,move_player_2,t)
 
@@ -42,8 +55,8 @@ class PrisonersDilemma(Basic):
                     else: 
                         move_player_1[t] = 1 - tmp
 
-                    if player_2.name[:7] == 'Neural':
-                        tmp = player_2.chooseAction(move_player_2,move_player_1,t, index = i)
+                    if 'Neural' in player_2.name:
+                        tmp = player_2.chooseAction(move_player_2,move_player_1,t, index = index_p2)
                     else:
                         tmp = player_2.chooseAction(move_player_2,move_player_1,t)
 
@@ -64,12 +77,12 @@ class PrisonersDilemma(Basic):
                         Score_player_1[t] = self.payofMatrix[1,1]
                         Score_player_2[t] = self.payofMatrix[1,1]
 
-                player_1.lastScore[j-1] = Score_player_1
-                player_2.lastScore[i] = Score_player_2
-                player_1.lastMe[j-1] = move_player_1
-                player_1.lastOp[j-1] = move_player_2
-                player_2.lastMe[i] = move_player_2
-                player_2.lastOp[i] = move_player_1
+                player_1.lastScore[index_p1] = Score_player_1
+                player_2.lastScore[index_p2] = Score_player_2
+                player_1.lastMe[index_p1] = move_player_1
+                player_1.lastOp[index_p1] = move_player_2
+                player_2.lastMe[index_p2] = move_player_2
+                player_2.lastOp[index_p2] = move_player_1
         return 0
 
     def playRound(self, list_map, index):

@@ -46,3 +46,5 @@ def getTournamentListSelf(players):
             arr[count,1] = j
             count += 1
     return arr.astype(int)
+
+#def mkpairs

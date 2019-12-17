@@ -1,59 +1,77 @@
+import numpy as np
+import pandas as pd
 import os
-import numpy
-import argparse
-from Arguments import arguments
-import inspect
-
-
 import Strategies as strat
+import inspect
 import Games
 import Tournament as tour
 
+def print_classes():
+    obj_list = []
+    name_list = []
+    count = 0
+    for name, obj in inspect.getmembers(strat):
+        if name[-5:] == 'Agent' and 'MS' not in name:
+            if 'Neural' not in name:
+                obj_list.append(obj(name = name))
+    return obj_list
 
-parser = argparse.ArgumentParser(description='IMSAI 8086')
-parser = arguments(parser)
-args = parser.parse_args()
+def generateAgent(list_models):
+    list_neural_agents = []
+    for i in list_models:
+        if '.h5' in i:
+            tmp = strat.Neural200Agent(name = i, actionSpace = 2)
+            tmp.loadModel('model')
+            list_neural_agents.append(tmp)
+    return list_neural_agents
 
-
-
-
-def main():
-    
-    #Initiate game
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+def play(list_of_players, rng, v=False): 
+    pathData = os.path.join('data','simulations')
     game = Games.PrisonersDilemma('Joshua')
     action_space = game.actionSpace
     
-    #Initiate players 
-    #for name, obj in inspect.getmembers(Games):
-     #   if inspect.isclass(obj): #and name[-5:] == 'Agent':
-      #      print (name)
-    list_of_players, arr = tour.initPlayersRand(20, [0.2, 0.4, 0.2, 0.0, 0.2], action_space)
+    L = len(list_of_players)
+    avgScoreM = np.zeros([L,L])     
+    for i in range(10):
+        if v:
+            print(i)
+        for k in list_of_players:
+            if k.name[:6] == 'Neural':
+                k.prepThread(len(list_of_players))
+            else:
+                k.clearHistory(len(list_of_players))
+        game.tournament(list_of_players, 200,rng, True)
+        for j in range(L):
+            for k in range(L):
+                avgScoreM[j,k] += np.sum(list_of_players[j].lastScore[k,:]) / 2000 
+            try:
+                list_of_players[j].resetState()
+            except:
+                pass
+    #print(avgScoreM/100)
+    df = {}
+    #arr = np.array(list_avgScore)
+    for i in range(avgScoreM.shape[0]):
+        df[list_of_players[i].name] = avgScoreM[i,:] 
+    df = pd.DataFrame(df)
+    df.to_csv(os.path.join(pathData,  'Matrix_avgPlayers.csv'))
+
+
+def main():
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    pathData = os.path.join('data','simulations')
+    modelPath = 'model'
     
-    for i in range(10000):
-        print(i)
-        game.tournament(list_of_players, 200,0.04)
-
-        for j in range(arr.size):
-            if arr[j] == 5:
-                list_of_players[j].train()
-                list_of_players[j].learning_rate *= 0.95
-                
-                
-    max_avg = 0
-    for k in range(len(list_of_players)):    
-        if arr[k] == 1:
-            avg = 0
-            s = 0
-            for i in range(len(list_of_players[k].lastScore)):
-                s += sum(list_of_players[k].lastScore[i])/200
-                avg = (s/len(list_of_players[k].lastScore))
-            if max_avg < avg:
-                max_avg = avg
-                arg = k
-    print(max_avg)
-    print(arg)
-
-
-if __name__ == "__main__":
+    list_neural_models = os.listdir(modelPath)
+    
+    strat_agent_list = print_classes()
+    neural_agent_list =  generateAgent(list_neural_models)
+    list_of_players = neural_agent_list + strat_agent_list
+    print('playing tournament with' )
+    for i in list_of_players:
+        print(i.name)
+    
+    play(list_of_players, 0.04,True)
+                                  
+if __name__ == '__main__':
     main()
