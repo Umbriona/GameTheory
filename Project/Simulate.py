@@ -32,7 +32,7 @@ def play(list_of_players, rng, v=False):
     
     L = len(list_of_players)
     avgScoreM = np.zeros([L,L])     
-    for i in range(10):
+    for i in range(1):
         if v:
             print(i)
         for k in list_of_players:
@@ -43,7 +43,7 @@ def play(list_of_players, rng, v=False):
         game.tournament(list_of_players, 200,rng, True)
         for j in range(L):
             for k in range(L):
-                avgScoreM[j,k] += np.sum(list_of_players[j].lastScore[k,:]) / 2000 
+                avgScoreM[j,k] += np.sum(list_of_players[j].lastScore[k,:]) / 200 
             try:
                 list_of_players[j].resetState()
             except:
