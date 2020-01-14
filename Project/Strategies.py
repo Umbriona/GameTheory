@@ -33,14 +33,15 @@ class BasicNeuron(Basic):
         self.learning_rate = 0.001
         self.gamma = 0.8
         self.prob = np.zeros([1,self.numberOfRounds,2])
-        self.states = np.zeros([1,self.numberOfRounds,10])
+        self.states = np.zeros([1,self.numberOfRounds,16])
+        self.heinsight = 200
     
-    def prepThread(self,nPlayers):
-        self.prob = np.zeros([nPlayers,self.numberOfRounds,2])
-        self.states = np.zeros([nPlayers,self.numberOfRounds,10])
-        self.lastScore = np.zeros([nPlayers,self.numberOfRounds])
-        self.lastMe = np.zeros([nPlayers,self.numberOfRounds])
-        self.lastOp = np.zeros([nPlayers,self.numberOfRounds])
+    def prepThread(self,nPlayers,stateSize):
+        self.prob = np.zeros([nPlayers,self.numberOfRounds,2], dtype=np.float32)
+        self.states = np.zeros([nPlayers,self.numberOfRounds,stateSize], dtype=np.float32)
+        self.lastScore = np.zeros([nPlayers,self.numberOfRounds], dtype=np.float32)
+        self.lastMe = np.zeros([nPlayers,self.numberOfRounds], dtype=np.float32)
+        self.lastOp = np.zeros([nPlayers,self.numberOfRounds], dtype=np.float32)
         
     def makeModel(self):
         model = Sequential()
@@ -72,11 +73,11 @@ class BasicNeuron(Basic):
         
     def discountRewards(self, rewards):
         discounted_rewards = np.zeros_like(rewards)
+        gamma = np.array([1**i for i in range(self.heinsight)])
         for p in range(rewards.shape[0]):
-            running_add = 0
-            for t in reversed(range(0, rewards.shape[1])):
-                running_add = running_add * self.gamma + rewards[p,t]
-                discounted_rewards[p,t] = running_add
+            for t in range(rewards.shape[1]):
+                end = np.min([self.heinsight,rewards.shape[1]-t])
+                discounted_rewards[p,t] = np.sum(rewards[p,t:(t+end)]*gamma[:end])
         return discounted_rewards
     
     def train(self):
@@ -86,8 +87,7 @@ class BasicNeuron(Basic):
         rewards = self.lastScore.reshape(self.lastScore.size, order = 'F')
 
         #print(y, pro)
-
-        gradients = y.astype('float32') - pro.T  
+        gradients = y - pro.T  
         rewards = self.discountRewards(self.lastScore)
         rewards = rewards.reshape(rewards.size, order = 'F')
         rewards = (rewards- np.mean(rewards)) / np.max([np.std(rewards),0.00001])
@@ -181,6 +181,131 @@ class Neural200Agent(BasicNeuron):
     
     def __init__(self, name, actionSpace):
         super(Neural200Agent, self).__init__ (name, actionSpace)
+        self.inputSize = 16
+        self.actionSpace = actionSpace
+        self.nLayers = 2
+        
+        
+        self.nNeurons = [ 5, 5, self.actionSpace]
+        self.model = self.makeModel()
+        
+        
+    def chooseAction(self, me, op, t, index = 0):
+        
+        if t < self.inputSize:
+            state = np.random.rand(self.inputSize)
+        else:
+            state = np.zeros(self.inputSize)
+            
+
+        state[0:np.min([t,self.inputSize//2])] = op[np.max([t-self.inputSize//2,0]):t] 
+        state[self.inputSize//2:np.min([t+self.inputSize//2,self.inputSize])] = me[np.max([t-self.inputSize//2,0]):t]
+        state = (state - np.mean(state)) / np.max([np.std(state),0.00001])  
+        X = self.model.predict(np.array([state,]))
+        act = np.argmax(X)
+        self.prob[index,t,:] = X[0]
+        self.states[index,t,:] =state
+        return act
+
+class Neural201Agent(BasicNeuron):
+    
+    def __init__(self, name, actionSpace):
+        super(Neural201Agent, self).__init__ (name, actionSpace)
+        self.inputSize = 16
+        self.actionSpace = actionSpace
+        self.nLayers = 2
+        
+        
+        self.nNeurons = [ 5, 5, self.actionSpace]
+        self.model = self.makeModel()
+        
+        
+    def chooseAction(self, me, op, t, index = 0):
+        
+        if t < self.inputSize:
+            state = np.random.rand(self.inputSize)
+        else:
+            state = np.zeros(self.inputSize)
+            
+
+        state[0:np.min([t,self.inputSize//2])] = op[np.max([t-self.inputSize//2,0]):t] 
+        state[self.inputSize//2:np.min([t+self.inputSize//2,self.inputSize])] = me[np.max([t-self.inputSize//2,0]):t]
+        state = (state - np.mean(state)) / np.max([np.std(state),0.00001]) 
+        X = self.model.predict(np.array([state,]))
+        rng = np.random.rand()
+        act = np.argmax(X)
+        if rng > X[0][act]:
+            act = np.argmin(X)
+        self.prob[index,t,:] = X[0]
+        self.states[index,t,:] =state
+        return act
+
+    
+class Neural202Agent(BasicNeuron):
+    
+    def __init__(self, name, actionSpace):
+        super(Neural202Agent, self).__init__ (name, actionSpace)
+        self.inputSize = 10
+        self.actionSpace = actionSpace
+        self.nLayers = 1
+        
+        
+        self.nNeurons = [ 5, self.actionSpace]
+        self.model = self.makeModel()
+        
+        
+    def chooseAction(self, me, op, t, index = 0):
+        
+        if t < self.inputSize:
+            state = np.random.rand(self.inputSize)
+        else:
+            state = np.zeros(self.inputSize)
+            
+        state[0:np.min([t,self.inputSize])] = op[np.max([t-self.inputSize,0]):t] 
+        state = (state - np.mean(state)) / np.max([np.std(state),0.00001])  
+        X = self.model.predict(np.array([state,]))
+        act = np.argmax(X)
+        self.prob[index,t,:] = X[0]
+        self.states[index,t,:] =state
+        return act
+
+    
+class Neural203Agent(BasicNeuron):
+    
+    def __init__(self, name, actionSpace):
+        super(Neural203Agent, self).__init__ (name, actionSpace)
+        self.inputSize = 10
+        self.actionSpace = actionSpace
+        self.nLayers = 1
+        
+        
+        self.nNeurons = [ 5, self.actionSpace]
+        self.model = self.makeModel()
+        
+        
+    def chooseAction(self, me, op, t, index = 0):
+        
+        if t < self.inputSize:
+            state = np.random.rand(self.inputSize)
+        else:
+            state = np.zeros(self.inputSize)
+            
+        state[0:np.min([t,self.inputSize])] = op[np.max([t-self.inputSize,0]):t] 
+        state = (state - np.mean(state)) / np.max([np.std(state),0.00001]) 
+        X = self.model.predict(np.array([state,]))
+        rng = np.random.rand()
+        act = np.argmax(X)
+        if rng > X[0][act]:
+            act = np.argmin(X)
+        self.prob[index,t,:] = X[0]
+        self.states[index,t,:] =state
+        return act
+    
+    
+class Neural204Agent(BasicNeuron):
+    
+    def __init__(self, name, actionSpace):
+        super(Neural204Agent, self).__init__ (name, actionSpace)
         self.inputSize = 10
         self.actionSpace = actionSpace
         self.nLayers = 2
@@ -189,7 +314,15 @@ class Neural200Agent(BasicNeuron):
         self.nNeurons = [ 5, self.actionSpace]
         self.model = self.makeModel()
         
-        
+    def discountRewards(self, rewards):
+        discounted_rewards = np.zeros_like(rewards)
+        for p in range(rewards.shape[0]):
+            running_add = 0
+            for t in reversed(range(0, rewards.shape[1])):
+                running_add = running_add * self.gamma + rewards[p,t]
+                discounted_rewards[p,t] = running_add
+        return discounted_rewards    
+
     def chooseAction(self, me, op, t, index = 0):
         
         if t < self.inputSize:
@@ -209,9 +342,6 @@ class Neural200Agent(BasicNeuron):
             self.prob[index,t,:] = X[0]
         self.states[index,t,:] =state
         return act
-    
-    
-
 
 class Neural10Agent(BasicNeuron):
     

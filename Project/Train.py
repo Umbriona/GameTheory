@@ -33,13 +33,13 @@ def train(list_of_players, rng = 0.0, v = False):
     action_space = game.actionSpace
     
     list_avgScore = []   
-    for i in range(1000):
+    for i in range(5000):
         if v:
             print(i)
         for k in list_of_players:
 
             if k.name[:6] == 'Neural':
-                k.prepThread(len(list_of_players)-1)
+                k.prepThread(len(list_of_players)-1,16)
             else:
                 k.clearHistory(len(list_of_players)-1)
         game.tournament(list_of_players, 200,rng)
@@ -65,17 +65,17 @@ def train(list_of_players, rng = 0.0, v = False):
 def main():
     
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
-    train_1v1 = True
+    train_1v1 = False
     #Initiate Players 1 vs 1
     if train_1v1 == True:
         obj_list = print_classes()
-        neural_list = [strat.Neural200Agent(name = 'NeuralAgent_'+ obj_list[i].name , actionSpace = 2) for i in range(len(obj_list))]
+        neural_list = [strat.Neural201Agent(name = 'NeuralAgentOpMe_'+ obj_list[i].name +'_rng' , actionSpace = 2) for i in range(len(obj_list))]
         list_of_players = [[neural_list[i], obj_list[i]] for i in range(len(obj_list))]
 
         #print(Process(target = train, args = (list_of_players[i], 0.04)))
-        list_of_processes = [Process(target = train, args = (list_of_players[i], 0.0)) for i in range(len(list_of_players))]
+        list_of_processes = [Process(target = train, args = (list_of_players[i], 0.02)) for i in range(len(list_of_players))]
         thread = 8
-        for i in range(len(list_of_processes)//thread):
+        for i in range(len(list_of_processes)//thread + 1):
             for j in range(i*thread ,min(i*thread+thread, len(list_of_processes))):
                 list_of_processes[j].start()
             for j in range(i*thread ,min(i*thread+thread, len(list_of_processes))):
@@ -85,7 +85,7 @@ def main():
         print('Battle Royal!!!!')
         obj_list = print_classes()
         list_of_players = []
-        list_of_players.append(strat.Neural200Agent(name = 'NeuralAgent_BattleRoyal', actionSpace = 2))
+        list_of_players.append(strat.Neural201Agent(name = 'NeuralAgent_BattleRoyal', actionSpace = 2))
         list_of_players += obj_list
         train(list_of_players, 0.0, v = True)
     return 0

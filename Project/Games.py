@@ -20,7 +20,7 @@ class PrisonersDilemma(Basic):
     def __init__(self, name):
         super(PrisonersDilemma, self).__init__(name)
         self.actionSpace = 2
-        self.payofMatrix = np.array([[3, 0],[5, 1]])
+        self.payofMatrix = np.array([[3, 0],[5, 1]], dtype = np.float32)
         
     def tournament(self, list_p, nIter, rng, againstSelf = False):
         
@@ -33,10 +33,10 @@ class PrisonersDilemma(Basic):
             for j in k:
                 player_1 = list_p[i]
                 player_2 = list_p[j]
-                move_player_1 = np.zeros(nIter)
-                move_player_2 = np.zeros(nIter)
-                Score_player_1 = np.zeros(nIter)
-                Score_player_2 = np.zeros(nIter)
+                move_player_1 = np.zeros(nIter, dtype = np.float32)
+                move_player_2 = np.zeros(nIter, dtype = np.float32)
+                Score_player_1 = np.zeros(nIter, dtype = np.float32)
+                Score_player_2 = np.zeros(nIter, dtype = np.float32)
                 
                 if againstSelf:
                     index_p1 = j 
