@@ -30,7 +30,7 @@ class BasicNeuron(Basic):
     def __init__(self,name, actionSpace):
         super(BasicNeuron, self).__init__(name)
         self.actionSpace = actionSpace
-        self.learning_rate = 0.001
+        self.learning_rate = 0.05
         self.gamma = 0.8
         self.prob = np.zeros([1,self.numberOfRounds,2])
         self.states = np.zeros([1,self.numberOfRounds,16])

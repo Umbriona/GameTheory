@@ -32,17 +32,22 @@ def train(list_of_players, rng = 0.0, v = False):
     game = Games.PrisonersDilemma('Joshua')
     action_space = game.actionSpace
     
-    list_avgScore = []   
-    for i in range(5000):
+    list_avgScore = []
+    noise = 0.2
+    bestScore = 0
+    for i in range(1000):
         if v:
             print(i)
+        if i%10 == 0:
+            noise *= 0.9
+            noise = np.max([noise,0.05])
         for k in list_of_players:
 
             if k.name[:6] == 'Neural':
                 k.prepThread(len(list_of_players)-1,16)
             else:
                 k.clearHistory(len(list_of_players)-1)
-        game.tournament(list_of_players, 200,rng)
+        game.tournament(list_of_players, 200,noise)
         avgScore= []
         for j in list_of_players:
             avgScore.append(np.sum(j.lastScore) / (200 * (len(list_of_players)-1)))
@@ -53,8 +58,9 @@ def train(list_of_players, rng = 0.0, v = False):
             except:
                 pass
         list_avgScore.append(avgScore)
-
-    list_of_players[0].saveModel(path = pathModel)
+        if(bestScore < avgScore[0]):
+            list_of_players[0].saveModel(path = pathModel)
+            bestScore = avgScore[0]
     df = {}
     arr = np.array(list_avgScore)
     for i in range(arr.shape[1]):
@@ -69,7 +75,7 @@ def main():
     #Initiate Players 1 vs 1
     if train_1v1 == True:
         obj_list = print_classes()
-        neural_list = [strat.Neural201Agent(name = 'NeuralAgentOpMe_'+ obj_list[i].name +'_rng' , actionSpace = 2) for i in range(len(obj_list))]
+        neural_list = [strat.Neural201Agent(name = 'NeuralAgent_'+ obj_list[i].name +'_rng' , actionSpace = 2) for i in range(len(obj_list))]
         list_of_players = [[neural_list[i], obj_list[i]] for i in range(len(obj_list))]
 
         #print(Process(target = train, args = (list_of_players[i], 0.04)))

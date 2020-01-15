@@ -27,7 +27,7 @@ def print_classes():
 def generateAgent(list_models):
     list_neural_agents = []
     for i in list_models:
-        if '.h5' in i and  'OpMe' in i:
+        if '.h5' in i and 'rng' in i and not  'OpMe' in i:
             tmp = strat.Neural201Agent(name = i, actionSpace = 2)
             tmp.loadModel('model')
             list_neural_agents.append(tmp)
@@ -67,7 +67,7 @@ def play(list_of_players, rng, v=False):
     for i in range(avgScoreM.shape[0]):
         df[list_of_players[i].name] = avgScoreM[i,:] /5
     df = pd.DataFrame(df)
-    df.to_csv(os.path.join(pathData,  'Matrix_avgPlayers_Non_rng.csv'))
+    df.to_csv(os.path.join(pathData,  'Matrix_avgPlayers_rng.csv'))
 
 def stability(nReplicates, epochs, gamma, v = False):
     game = Games.PrisonersDilemma('Joshua')
